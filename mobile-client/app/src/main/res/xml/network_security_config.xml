@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Production traffic is wss:// via `tailscale serve` (valid *.ts.net certificate), so cleartext is off.
+  network-security-config cannot express CIDR ranges (no 100.64.0.0/10); it matches domains or exact
+  IP literals only. Cleartext is allowed for the emulator host alias 10.0.2.2. To test against one
+  exact Tailscale IP in a debug build, add a second <domain> entry here locally; never commit it.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false" />
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="false">10.0.2.2</domain>
+    </domain-config>
+</network-security-config>
