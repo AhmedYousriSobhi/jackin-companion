@@ -133,6 +133,7 @@ class NaviForegroundService : Service() {
         scope.launch { ws.state.collect { onConnState(it) } }
         scope.launch {
             ws.inbound.collect { msg ->
+                NaviLog.d("inbound ${msg::class.simpleName}")
                 when (msg) {
                     is NaviStateMsg -> NaviBus.setNaviMode(
                         when (msg.state) {
@@ -179,6 +180,7 @@ class NaviForegroundService : Service() {
     }
 
     private fun onConnState(state: ConnState) {
+        NaviLog.d("conn $state")
         NaviBus.setConnection(state)
         if (state !is ConnState.Connected) {
             NaviBus.setNaviMode(NaviMode.IDLE)

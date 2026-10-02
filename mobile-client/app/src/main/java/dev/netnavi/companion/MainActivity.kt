@@ -132,6 +132,7 @@ private fun SetupScreen(vm: MainViewModel = viewModel()) {
         Text("Navi", style = MaterialTheme.typography.headlineMedium)
         Text("Status: ${describe(connection, running)}")
         Text("Accessibility: ${if (a11y) "enabled" else "not enabled"}   Kill switch: ${if (killed) "ENGAGED (tap avatar)" else "armed"}")
+        if (reply.isNotEmpty()) Text("Navi: $reply", style = MaterialTheme.typography.titleMedium)
 
         OutlinedTextField(
             value = url, onValueChange = { url = it }, label = { Text("Host URL") },
@@ -184,7 +185,6 @@ private fun SetupScreen(vm: MainViewModel = viewModel()) {
             NaviBus.send(UserText(message))
             message = ""
         }, enabled = connection == ConnState.Connected && message.isNotBlank()) { Text("Send") }
-        if (reply.isNotEmpty()) Text("Navi: $reply")
     }
 }
 

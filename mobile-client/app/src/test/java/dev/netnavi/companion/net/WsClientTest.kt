@@ -115,6 +115,31 @@ class WsClientTest {
         c.stop()
     }
 
+    @Test fun deliversTurnMessagesAfterTheAck() = runBlocking {
+        fun env(type: String, payload: String) =
+            """{"v":1,"id":"x","type":"$type","ts":1,"payload":$payload}""".encodeUtf8()
+        enqueueHost(binaryFrames = true, afterAck = { ws ->
+            ws.send(env("navi_state", """{"state":"processing"}"""))
+            ws.send(env("navi_state", """{"state":"talking"}"""))
+            ws.send(env("assistant_delta", """{"turn_id":"t","text":"hi "}"""))
+            ws.send(env("assistant_done", """{"turn_id":"t","text":"hi there"}"""))
+            ws.send(env("navi_state", """{"state":"idle"}"""))
+        })
+        val c = client()
+        val seen = CopyOnWriteArrayList<ServerMessage>()
+        val collector = scope.launch { c.inbound.collect { seen += it } }
+        Thread.sleep(50)
+        c.start(config())
+        withTimeout(5_000) { while (seen.size < 6) kotlinx.coroutines.delay(10) } // ack + 5
+        assertEquals(
+            listOf("processing", "talking", "idle"),
+            seen.filterIsInstance<NaviStateMsg>().map { it.state },
+        )
+        assertEquals("hi there", seen.filterIsInstance<AssistantDone>().single().text)
+        collector.cancel()
+        c.stop()
+    }
+
     @Test fun sendIsRejectedUntilConnected() = runBlocking {
         val c = client()
         assertFalse(c.send(UserText("hi")))

@@ -51,7 +51,7 @@ First run on device:
 
 Emulator: `ws://10.0.2.2:8765/ws` (only cleartext host allowed besides one optional debug IP).
 
-Notes on what exists (M1): the setup screen has a "Test" box that sends `user_text`, useful for checking the avatar states and the kill switch against `LLM_PROVIDER=fake`. The client advertises `programs=["core"]` until M2/M4 land, so the host binds no screen tools yet. Unit tests (`./gradlew testDebugUnitTest`) cover protocol, connection policy and `WsClient` against MockWebServer. Without `local.properties`, set `ANDROID_HOME` to your SDK.
+Notes on what exists (M1): the setup screen has a "Test" box that sends `user_text`, useful for checking the avatar states and the kill switch against `LLM_PROVIDER=fake`. The client advertises `programs=["core"]` until M2/M4 land, so the host binds no screen tools yet. Unit tests (`./gradlew testDebugUnitTest`) cover protocol, connection policy and `WsClient` against MockWebServer. `RealHostIntegrationTest` runs the real client against a running host and is skipped unless `NAVI_HOST_URL` and `NAVI_HOST_TOKEN` are set. Without `local.properties`, set `ANDROID_HOME` to your SDK. On low-memory machines run Gradle with `--no-daemon -Dorg.gradle.jvmargs=-Xmx1g` and do not run the emulator at the same time.
 
 ## Conventions
 
