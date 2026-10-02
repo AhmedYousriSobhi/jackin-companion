@@ -1,0 +1,34 @@
+# secrets / local state
+.env
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
+*.jks
+*.keystore
+local.properties
+keystore.properties
+
+# python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+build/
+dist/
+
+# android / gradle
+.gradle/
+**/build/
+.idea/
+*.iml
+captures/
+.externalNativeBuild/
+.cxx/
+*.apk
+*.aab
+
+# os / editor
+.DS_Store
+.vscode/

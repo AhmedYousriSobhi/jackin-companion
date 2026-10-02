@@ -68,7 +68,7 @@ Max frame 512 KB (`WS_MAX_MESSAGE_KB`). Compression: permessage-deflate negotiat
 | `tool_result` | `{call_id, ok, data?, error?:{code,message}}` | M0 | answers a `tool_call` |
 | `confirm_result` | `{call_id, approved}` | M3 | answers a `confirm_request` |
 | `notification` | `{key, package, title, text, actions[]}` | M8 | opt-in, allow-listed packages only |
-| `ping` | `{}` | M0 | app heartbeat (see §7) |
+| `ping` | `{next_s?}` | M0 | app heartbeat (see §7); `next_s` = seconds until the next ping, so the server can scale its missed-ping deadline (3 x `next_s`) when the phone slows down with the screen off |
 
 ### Server -> Client
 | type | payload | since | notes |
