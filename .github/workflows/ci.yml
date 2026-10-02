@@ -1,0 +1,59 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  host:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python: ["3.11", "3.12"]
+    defaults:
+      run:
+        working-directory: host-server
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+          cache: pip
+          cache-dependency-path: host-server/pyproject.toml
+      - run: pip install -e ".[dev]"
+      - run: ruff check .
+      - run: ruff format --check .
+      - run: pytest -q # LLM_PROVIDER=fake, no secrets needed
+
+  android:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile-client
+    steps:
+      - uses: actions/checkout@v4
+      - name: Detect Android project
+        id: detect
+        working-directory: .
+        run: echo "present=$([ -f mobile-client/gradlew ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+      - if: steps.detect.outputs.present == 'true'
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - if: steps.detect.outputs.present == 'true'
+        uses: gradle/actions/setup-gradle@v4
+      - if: steps.detect.outputs.present == 'true'
+        run: ./gradlew lint test assembleDebug --stacktrace
+      - if: steps.detect.outputs.present == 'true' && always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-reports
+          path: |
+            mobile-client/app/build/reports
+            mobile-client/app/build/test-results
+          if-no-files-found: ignore
