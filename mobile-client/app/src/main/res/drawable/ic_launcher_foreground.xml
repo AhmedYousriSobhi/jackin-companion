@@ -1,0 +1,16 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- antenna -->
+    <path android:fillColor="#7FE7FF" android:pathData="M52,22h4v12h-4z" />
+    <path android:fillColor="#7FE7FF" android:pathData="M54,16m-5,0a5,5 0,1 1,10 0a5,5 0,1 1,-10 0" />
+    <!-- body -->
+    <path android:fillColor="#2F6BFF" android:pathData="M54,60m-26,0a26,26 0,1 1,52 0a26,26 0,1 1,-52 0" />
+    <!-- visor -->
+    <path android:fillColor="#0B1B3F" android:pathData="M36,50h36a6,6 0,0 1,6,6v10a6,6 0,0 1,-6,6h-36a6,6 0,0 1,-6,-6v-10a6,6 0,0 1,6,-6z" />
+    <!-- eyes -->
+    <path android:fillColor="#7FE7FF" android:pathData="M42,56h6v8h-6z" />
+    <path android:fillColor="#7FE7FF" android:pathData="M60,56h6v8h-6z" />
+</vector>

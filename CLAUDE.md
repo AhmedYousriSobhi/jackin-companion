@@ -23,11 +23,11 @@ pip install -e ".[dev]"
 cp ../.env.example .env                       # edit AUTH_TOKEN, LLM_*, budgets
 uvicorn app.main:app --host 127.0.0.1 --port 8765 --reload   # dev
 pytest                                        # unit tests (LLM_PROVIDER=fake)
-python -m tests.fake_phone                    # scripted fake device
+python -m tests.fake_phone --token <AUTH_TOKEN> [--cancel]   # scripted fake device (needs the server running)
 ruff check . && ruff format .                 # lint/format
 ```
 
-- Health: `curl http://127.0.0.1:8765/health`. Usage: `curl http://127.0.0.1:8765/metrics` (localhost only).
+- Health: `curl http://127.0.0.1:8765/health`. Usage: `curl http://127.0.0.1:8765/metrics` (localhost only; requests carrying `X-Forwarded-For`, i.e. via `tailscale serve`, get 404).
 - Phone access: `../deploy/tailscale-serve.sh` -> `wss://<host>.<tailnet>.ts.net/ws`. The server binds `127.0.0.1`; never `0.0.0.0`.
 - Production (D2): `systemctl --user enable --now netnavi` (or `launchctl load deploy/launchd/dev.netnavi.host.plist`). Always `--workers 1`; sessions are in-process.
 
@@ -50,6 +50,8 @@ First run on device:
 4. Start; the avatar appears and status reads "connected".
 
 Emulator: `ws://10.0.2.2:8765/ws` (only cleartext host allowed besides one optional debug IP).
+
+Notes on what exists (M1): the setup screen has a "Test" box that sends `user_text`, useful for checking the avatar states and the kill switch against `LLM_PROVIDER=fake`. The client advertises `programs=["core"]` until M2/M4 land, so the host binds no screen tools yet. Unit tests (`./gradlew testDebugUnitTest`) cover protocol, connection policy and `WsClient` against MockWebServer. Without `local.properties`, set `ANDROID_HOME` to your SDK.
 
 ## Conventions
 

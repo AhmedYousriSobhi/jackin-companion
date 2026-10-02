@@ -1,0 +1,115 @@
+package dev.netnavi.companion.overlay
+
+import android.accessibilityservice.AccessibilityService
+import android.content.Context
+import android.graphics.PixelFormat
+import android.view.Gravity
+import android.view.HapticFeedbackConstants
+import android.view.View
+import android.view.WindowManager
+import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.platform.LocalView
+import androidx.lifecycle.setViewTreeLifecycleOwner
+import androidx.lifecycle.setViewTreeViewModelStoreOwner
+import androidx.savedstate.setViewTreeSavedStateRegistryOwner
+import dev.netnavi.companion.bus.NaviBus
+import dev.netnavi.companion.bus.NaviMode
+import dev.netnavi.companion.net.ConnState
+import kotlinx.coroutines.flow.combine
+
+/**
+ * Owns the floating avatar window. Uses TYPE_ACCESSIBILITY_OVERLAY so no "draw over apps"
+ * permission is needed (spec §2). Main thread only.
+ */
+class OverlayController(private val service: AccessibilityService) {
+    private val wm = service.getSystemService(Context.WINDOW_SERVICE) as WindowManager
+    private val owner = OverlayLifecycleOwner()
+    private var view: ComposeView? = null
+    private val params = WindowManager.LayoutParams(
+        WindowManager.LayoutParams.WRAP_CONTENT,
+        WindowManager.LayoutParams.WRAP_CONTENT,
+        WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
+        WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+        PixelFormat.TRANSLUCENT,
+    ).apply {
+        gravity = Gravity.TOP or Gravity.START
+        x = 24
+        y = 400
+    }
+
+    fun show() {
+        if (view != null) return
+        owner.create()
+        val v = ComposeView(service).apply {
+            setViewTreeLifecycleOwner(owner)
+            setViewTreeViewModelStoreOwner(owner)
+            setViewTreeSavedStateRegistryOwner(owner)
+            setContent { OverlayContent(onDrag = ::moveBy) }
+        }
+        wm.addView(v, params)
+        view = v
+        owner.resume()
+    }
+
+    /** Screen off -> STOPPED so animations stop; screen on -> resume. */
+    fun setScreenOn(on: Boolean) {
+        if (view == null) return
+        if (on) owner.resume() else owner.stop()
+    }
+
+    fun hide() {
+        view?.let { runCatching { wm.removeView(it) } }
+        view = null
+        owner.destroy()
+    }
+
+    private fun moveBy(dx: Float, dy: Float) {
+        val v = view ?: return
+        params.x += dx.toInt()
+        params.y += dy.toInt()
+        wm.updateViewLayout(v, params)
+    }
+}
+
+@Composable
+private fun OverlayContent(onDrag: (Float, Float) -> Unit) {
+    val connection by NaviBus.connection.collectAsState()
+    val mode by NaviBus.naviMode.collectAsState()
+    val killed by NaviBus.killSwitch.collectAsState()
+    val view = LocalView.current
+
+    val avatarMode = when {
+        killed -> AvatarMode.KILLED
+        connection != ConnState.Connected -> AvatarMode.DISCONNECTED
+        mode == NaviMode.PROCESSING -> AvatarMode.PROCESSING
+        mode == NaviMode.TALKING -> AvatarMode.TALKING
+        else -> AvatarMode.IDLE
+    }
+
+    NaviAvatar(
+        mode = avatarMode,
+        modifier = Modifier
+            .pointerInput(Unit) {
+                detectTapGestures(
+                    onTap = { if (NaviBus.killSwitch.value) NaviBus.rearmKillSwitch() },
+                    onLongPress = {
+                        view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                        NaviBus.engageKillSwitch()
+                    },
+                )
+            }
+            .pointerInput(Unit) {
+                detectDragGestures { change, drag ->
+                    change.consume()
+                    onDrag(drag.x, drag.y)
+                }
+            },
+    )
+}
