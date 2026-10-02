@@ -46,6 +46,7 @@ import dev.netnavi.companion.bus.NaviBus
 import dev.netnavi.companion.data.Prefs
 import dev.netnavi.companion.net.ConnState
 import dev.netnavi.companion.net.StopReason
+import dev.netnavi.companion.overlay.OverlayHost
 import dev.netnavi.companion.net.UserText
 import dev.netnavi.companion.service.NaviForegroundService
 import kotlinx.coroutines.flow.first
@@ -111,6 +112,13 @@ private fun SetupScreen(vm: MainViewModel = viewModel()) {
     var url by remember { mutableStateOf("") }
     var token by remember { mutableStateOf("") }
     var message by remember { mutableStateOf("") }
+    var canDraw by remember { mutableStateOf(OverlayHost.hasPermission(context)) }
+    LaunchedEffect(Unit) { // re-check while the screen is open so returning from Settings updates it
+        while (true) {
+            canDraw = OverlayHost.hasPermission(context)
+            kotlinx.coroutines.delay(1000)
+        }
+    }
     LaunchedEffect(vm.loaded) {
         if (vm.loaded) {
             url = vm.initialUrl
@@ -131,7 +139,12 @@ private fun SetupScreen(vm: MainViewModel = viewModel()) {
     ) {
         Text("Navi", style = MaterialTheme.typography.headlineMedium)
         Text("Status: ${describe(connection, running)}")
-        Text("Accessibility: ${if (a11y) "enabled" else "not enabled"}   Kill switch: ${if (killed) "ENGAGED (tap avatar)" else "armed"}")
+        val killText = if (killed) "ENGAGED (tap avatar)" else "armed"
+        if (BuildConfig.LITE) {
+            Text("Overlay permission: ${if (canDraw) "granted" else "needed"}   Kill switch: $killText")
+        } else {
+            Text("Accessibility: ${if (a11y) "enabled" else "not enabled"}   Kill switch: $killText")
+        }
         if (reply.isNotEmpty()) Text("Navi: $reply", style = MaterialTheme.typography.titleMedium)
 
         OutlinedTextField(
@@ -161,20 +174,37 @@ private fun SetupScreen(vm: MainViewModel = viewModel()) {
         }
 
         Text("Setup", style = MaterialTheme.typography.titleMedium)
-        Text(
-            "Android 13+ blocks Accessibility for sideloaded apps until you open App info, tap the ⋮ menu and choose " +
-                "\"Allow restricted settings\". Do that first, then enable Accessibility → Navi.",
-            style = MaterialTheme.typography.bodySmall,
-        )
-        OutlinedButton(onClick = {
-            context.startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:${context.packageName}")))
-        }, modifier = Modifier.fillMaxWidth()) { Text("1. App info (allow restricted settings)") }
-        OutlinedButton(onClick = {
-            context.startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
-        }, modifier = Modifier.fillMaxWidth()) { Text("2. Accessibility settings") }
-        OutlinedButton(onClick = {
-            context.startActivity(Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS))
-        }, modifier = Modifier.fillMaxWidth()) { Text("3. Battery settings (set Navi to Unrestricted)") }
+        if (BuildConfig.LITE) {
+            Text(
+                "This build needs no Accessibility access. Allow \"Display over other apps\" so the avatar can float, " +
+                    "then tap Start (tap Start again after granting).",
+                style = MaterialTheme.typography.bodySmall,
+            )
+            OutlinedButton(onClick = {
+                context.startActivity(
+                    Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:${context.packageName}")),
+                )
+            }, modifier = Modifier.fillMaxWidth()) { Text("1. Allow display over other apps") }
+            OutlinedButton(onClick = {
+                context.startActivity(Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS))
+            }, modifier = Modifier.fillMaxWidth()) { Text("2. Battery settings (set Navi to Unrestricted)") }
+        } else {
+            Text(
+                "Android 13+ blocks Accessibility for sideloaded apps until you open App info, tap the ⋮ menu and choose " +
+                    "\"Allow restricted settings\". Do that first, then enable Accessibility → Navi.",
+                style = MaterialTheme.typography.bodySmall,
+            )
+            OutlinedButton(onClick = {
+                context.startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:${context.packageName}")))
+            }, modifier = Modifier.fillMaxWidth()) { Text("1. App info (allow restricted settings)") }
+            OutlinedButton(onClick = {
+                context.startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+            }, modifier = Modifier.fillMaxWidth()) { Text("2. Accessibility settings") }
+            OutlinedButton(onClick = {
+                context.startActivity(Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS))
+            }, modifier = Modifier.fillMaxWidth()) { Text("3. Battery settings (set Navi to Unrestricted)") }
+
+        }
 
         Text("Test", style = MaterialTheme.typography.titleMedium)
         OutlinedTextField(

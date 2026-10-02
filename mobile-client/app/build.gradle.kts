@@ -46,6 +46,21 @@ android {
     }
     kotlinOptions { jvmTarget = "17" }
 
+    flavorDimensions += "mode"
+    productFlavors {
+        // full: Accessibility service hosts the overlay and (from M2) reads/acts on the screen.
+        create("full") {
+            dimension = "mode"
+            buildConfigField("boolean", "LITE", "false")
+        }
+        // lite: no Accessibility service; avatar-only overlay via "display over other apps".
+        create("lite") {
+            dimension = "mode"
+            versionNameSuffix = "-lite"
+            buildConfigField("boolean", "LITE", "true")
+        }
+    }
+
     buildFeatures {
         compose = true
         buildConfig = true

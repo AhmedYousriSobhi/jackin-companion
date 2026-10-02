@@ -1,6 +1,5 @@
 package dev.netnavi.companion.overlay
 
-import android.accessibilityservice.AccessibilityService
 import android.content.Context
 import android.graphics.PixelFormat
 import android.view.Gravity
@@ -25,17 +24,17 @@ import dev.netnavi.companion.net.ConnState
 import kotlinx.coroutines.flow.combine
 
 /**
- * Owns the floating avatar window. Uses TYPE_ACCESSIBILITY_OVERLAY so no "draw over apps"
- * permission is needed (spec §2). Main thread only.
+ * Owns the floating avatar window. The `full` flavor passes TYPE_ACCESSIBILITY_OVERLAY (no "draw over
+ * apps" permission needed, spec §2); `lite` passes TYPE_APPLICATION_OVERLAY. Main thread only.
  */
-class OverlayController(private val service: AccessibilityService) {
-    private val wm = service.getSystemService(Context.WINDOW_SERVICE) as WindowManager
+class OverlayController(private val context: Context, private val windowType: Int) {
+    private val wm = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
     private val owner = OverlayLifecycleOwner()
     private var view: ComposeView? = null
     private val params = WindowManager.LayoutParams(
         WindowManager.LayoutParams.WRAP_CONTENT,
         WindowManager.LayoutParams.WRAP_CONTENT,
-        WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
+        windowType,
         WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
         PixelFormat.TRANSLUCENT,
     ).apply {
@@ -47,7 +46,7 @@ class OverlayController(private val service: AccessibilityService) {
     fun show() {
         if (view != null) return
         owner.create()
-        val v = ComposeView(service).apply {
+        val v = ComposeView(context).apply {
             setViewTreeLifecycleOwner(owner)
             setViewTreeViewModelStoreOwner(owner)
             setViewTreeSavedStateRegistryOwner(owner)

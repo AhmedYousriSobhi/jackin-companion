@@ -1,0 +1,4 @@
+<resources>
+    <string name="a11y_label">Navi</string>
+    <string name="a11y_description">Lets Navi float over other apps and, in later versions, read and operate the screen when you ask. Screen content is only sent to your own host server.</string>
+</resources>

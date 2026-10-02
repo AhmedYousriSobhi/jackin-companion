@@ -21,7 +21,7 @@ class NaviAccessibilityService : AccessibilityService() {
     override fun onServiceConnected() {
         super.onServiceConnected()
         NaviLog.i("accessibility service connected")
-        val controller = OverlayController(this)
+        val controller = OverlayController(this, android.view.WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY)
         overlay = controller
         controller.show()
         unregisterScreen = trackScreenState(this)

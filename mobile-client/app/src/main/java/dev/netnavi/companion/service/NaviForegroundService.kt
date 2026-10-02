@@ -42,6 +42,7 @@ import dev.netnavi.companion.net.ToolError
 import dev.netnavi.companion.net.ToolResult
 import dev.netnavi.companion.net.WsClient
 import dev.netnavi.companion.net.WsConfig
+import dev.netnavi.companion.overlay.OverlayHost
 import java.util.Locale
 import java.util.TimeZone
 import java.util.concurrent.ConcurrentHashMap
@@ -82,6 +83,7 @@ class NaviForegroundService : Service() {
             return START_NOT_STICKY
         }
         goForeground(statusText(ConnState.Idle))
+        OverlayHost.attach(this, scope) // no-op in the full flavor; re-run so a newly granted permission applies
         if (!started) {
             started = true
             scope.launch {
@@ -246,6 +248,7 @@ class NaviForegroundService : Service() {
     }
 
     override fun onDestroy() {
+        OverlayHost.detach()
         networkCallback?.let {
             runCatching { (getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager).unregisterNetworkCallback(it) }
         }
