@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import okhttp3.Response
+import okio.ByteString.Companion.encodeUtf8
 import okhttp3.WebSocket
 import okhttp3.WebSocketListener
 import okhttp3.mockwebserver.MockResponse
@@ -44,6 +45,7 @@ class WsClientTest {
         pingS: Int = 25,
         answerPings: Boolean = true,
         afterAck: (WebSocket) -> Unit = {},
+        binaryFrames: Boolean = false,
         closeWith: Pair<Int, String>? = null,
     ) {
         server.enqueue(
@@ -61,7 +63,7 @@ class WsClientTest {
                     received += env
                     when (env.type) {
                         "hello" -> if (closeWith != null) webSocket.close(closeWith.first, closeWith.second) else {
-                            webSocket.send(ack(pingS))
+                            if (binaryFrames) webSocket.send(ack(pingS).encodeUtf8()) else webSocket.send(ack(pingS))
                             afterAck(webSocket)
                         }
                         "ping" -> if (answerPings) webSocket.send(pong())
@@ -102,6 +104,15 @@ class WsClientTest {
         assertEquals("dev1", hello.payload["device_id"].toString().trim('"'))
         c.stop()
         assertEquals(ConnState.Idle, c.state.value)
+    }
+
+    @Test fun acceptsEnvelopesSentAsBinaryFrames() = runBlocking {
+        // The FastAPI host uses send_bytes, so hello_ack arrives as a binary frame.
+        enqueueHost(binaryFrames = true)
+        val c = client()
+        c.start(config())
+        c.await(ConnState.Connected)
+        c.stop()
     }
 
     @Test fun sendIsRejectedUntilConnected() = runBlocking {

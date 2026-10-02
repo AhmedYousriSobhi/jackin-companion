@@ -22,6 +22,7 @@ import okhttp3.Request
 import okhttp3.Response
 import okhttp3.WebSocket
 import okhttp3.WebSocketListener
+import okio.ByteString
 
 enum class StopReason { BAD_TOKEN, REPLACED, CLIENT_TOO_OLD }
 
@@ -127,6 +128,11 @@ class WsClient(
 
                 override fun onMessage(webSocket: WebSocket, text: String) {
                     handleText(text, onAck)
+                }
+
+                // The host may send envelopes as binary frames; treat them as UTF-8 JSON too.
+                override fun onMessage(webSocket: WebSocket, bytes: ByteString) {
+                    handleText(bytes.utf8(), onAck)
                 }
 
                 override fun onClosing(webSocket: WebSocket, code: Int, reason: String) {
