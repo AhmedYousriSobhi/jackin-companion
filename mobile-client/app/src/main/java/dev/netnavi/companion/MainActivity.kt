@@ -46,7 +46,10 @@ import dev.netnavi.companion.bus.NaviBus
 import dev.netnavi.companion.data.Prefs
 import dev.netnavi.companion.net.ConnState
 import dev.netnavi.companion.net.StopReason
+import dev.netnavi.companion.overlay.NaviAvatar
 import dev.netnavi.companion.overlay.OverlayHost
+import dev.netnavi.companion.overlay.currentAvatarMode
+import dev.netnavi.companion.overlay.killSwitchGestures
 import dev.netnavi.companion.net.UserText
 import dev.netnavi.companion.service.NaviForegroundService
 import kotlinx.coroutines.flow.first
@@ -137,11 +140,16 @@ private fun SetupScreen(vm: MainViewModel = viewModel()) {
         Modifier.verticalScroll(rememberScrollState()).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Text("Navi", style = MaterialTheme.typography.headlineMedium)
+        Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text("Navi", style = MaterialTheme.typography.headlineMedium)
+            // The avatar also lives here, so the app works without any special permission.
+            NaviAvatar(mode = currentAvatarMode(), modifier = Modifier.killSwitchGestures())
+        }
+        Text("Tip: long-press the avatar to stop Navi (kill switch), tap it to re-arm.", style = MaterialTheme.typography.bodySmall)
         Text("Status: ${describe(connection, running)}")
         val killText = if (killed) "ENGAGED (tap avatar)" else "armed"
         if (BuildConfig.LITE) {
-            Text("Overlay permission: ${if (canDraw) "granted" else "needed"}   Kill switch: $killText")
+            Text("Floating overlay: ${if (canDraw) "on" else "off (optional)"}   Kill switch: $killText")
         } else {
             Text("Accessibility: ${if (a11y) "enabled" else "not enabled"}   Kill switch: $killText")
         }
@@ -176,8 +184,8 @@ private fun SetupScreen(vm: MainViewModel = viewModel()) {
         Text("Setup", style = MaterialTheme.typography.titleMedium)
         if (BuildConfig.LITE) {
             Text(
-                "This build needs no Accessibility access. Allow \"Display over other apps\" so the avatar can float, " +
-                    "then tap Start (tap Start again after granting).",
+                "No special permission is needed: the avatar lives in this screen. Optionally allow \"Display over other apps\" " +
+                    "(Android may require \"Allow restricted settings\" first) to also float it over other apps.",
                 style = MaterialTheme.typography.bodySmall,
             )
             OutlinedButton(onClick = {

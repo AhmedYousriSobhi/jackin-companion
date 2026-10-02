@@ -77,33 +77,42 @@ class OverlayController(private val context: Context, private val windowType: In
     }
 }
 
+/** Derives the avatar mode from the bus: kill switch > connection > what the host says. */
 @Composable
-private fun OverlayContent(onDrag: (Float, Float) -> Unit) {
+fun currentAvatarMode(): AvatarMode {
     val connection by NaviBus.connection.collectAsState()
     val mode by NaviBus.naviMode.collectAsState()
     val killed by NaviBus.killSwitch.collectAsState()
-    val view = LocalView.current
-
-    val avatarMode = when {
+    return when {
         killed -> AvatarMode.KILLED
         connection != ConnState.Connected -> AvatarMode.DISCONNECTED
         mode == NaviMode.PROCESSING -> AvatarMode.PROCESSING
         mode == NaviMode.TALKING -> AvatarMode.TALKING
         else -> AvatarMode.IDLE
     }
+}
 
+/** Tap re-arms a engaged kill switch; long-press engages it. Shared by the overlay and the in-app avatar. */
+@Composable
+fun Modifier.killSwitchGestures(): Modifier {
+    val view = LocalView.current
+    return pointerInput(Unit) {
+        detectTapGestures(
+            onTap = { if (NaviBus.killSwitch.value) NaviBus.rearmKillSwitch() },
+            onLongPress = {
+                view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                NaviBus.engageKillSwitch()
+            },
+        )
+    }
+}
+
+@Composable
+private fun OverlayContent(onDrag: (Float, Float) -> Unit) {
     NaviAvatar(
-        mode = avatarMode,
+        mode = currentAvatarMode(),
         modifier = Modifier
-            .pointerInput(Unit) {
-                detectTapGestures(
-                    onTap = { if (NaviBus.killSwitch.value) NaviBus.rearmKillSwitch() },
-                    onLongPress = {
-                        view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
-                        NaviBus.engageKillSwitch()
-                    },
-                )
-            }
+            .killSwitchGestures()
             .pointerInput(Unit) {
                 detectDragGestures { change, drag ->
                     change.consume()
